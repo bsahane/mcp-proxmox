@@ -1,0 +1,7 @@
+
+    "ansible-mcp": {
+      "command": "python",
+      "args": [
+        "/Users/bsahane/Developer/cursor/mcp-ansible/src/ansible_mcp/server.py"
+      ]
+    },

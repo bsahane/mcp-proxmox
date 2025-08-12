@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-proxmox"
+version = "0.1.0"
+description = "Advanced Proxmox MCP Server (Model Context Protocol)"
+readme = "README.md"
+authors = [{ name = "bsahane" }]
+requires-python = ">=3.10"
+keywords = ["mcp", "proxmox", "model-context-protocol"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+
+[project.scripts]
+proxmox-mcp = "proxmox_mcp.server:main"
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["proxmox_mcp*"]
