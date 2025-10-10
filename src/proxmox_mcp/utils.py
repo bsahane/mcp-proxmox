@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import time
+import subprocess
+import asyncio
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
@@ -106,3 +108,59 @@ def format_size(size_bytes: int) -> str:
         return f"{int(size_bytes)} {size_names[i]}"
     else:
         return f"{size_bytes:.1f} {size_names[i]}"
+
+
+async def run_command(
+    cmd: list[str], 
+    input_data: Optional[str] = None,
+    shell: bool = False,
+    cwd: Optional[str] = None,
+    env: Optional[Dict[str, str]] = None
+) -> Dict[str, Any]:
+    """Run a command asynchronously and return the result."""
+    try:
+        if shell and isinstance(cmd, list):
+            cmd = " ".join(cmd)
+        
+        process = await asyncio.create_subprocess_shell(
+            cmd if shell else " ".join(cmd),
+            stdin=subprocess.PIPE if input_data else None,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=cwd,
+            env=env
+        )
+        
+        stdout, stderr = await process.communicate(
+            input=input_data.encode() if input_data else None
+        )
+        
+        return {
+            "return_code": process.returncode,
+            "stdout": stdout.decode() if stdout else "",
+            "stderr": stderr.decode() if stderr else "",
+            "command": cmd
+        }
+        
+    except Exception as e:
+        return {
+            "return_code": -1,
+            "stdout": "",
+            "stderr": str(e),
+            "command": cmd,
+            "error": str(e)
+        }
+
+
+def format_error(message: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Format an error response with context."""
+    error_response = {
+        "error": True,
+        "message": message,
+        "timestamp": time.time()
+    }
+    
+    if context:
+        error_response["context"] = context
+        
+    return error_response

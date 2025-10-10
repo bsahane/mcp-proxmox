@@ -1,3 +1,4 @@
+# Core MCP and Proxmox dependencies
 mcp[cli]>=1.2.0
 proxmoxer>=2.0.1
 requests>=2.31.0
@@ -6,3 +7,84 @@ PyYAML>=6.0.1
 jsonschema>=4.20.0
 jinja2>=3.1.3
 cryptography>=41.0.0
+
+# Security & Authentication
+pyotp>=2.9.0
+qrcode>=7.4.2
+pillow>=10.0.0
+fido2>=1.1.2
+pyOpenSSL>=24.0.0
+acme>=2.7.4
+certbot>=2.7.4
+hvac>=2.0.0
+
+# Infrastructure Automation
+python-terraform>=0.10.1
+ansible>=8.0.0
+ansible-runner>=2.3.4
+gitpython>=3.1.40
+dulwich>=0.21.6
+
+# Network Management
+netaddr>=0.10.1
+scapy>=2.5.0
+pyroute2>=0.7.12
+netmiko>=4.3.0
+
+# Monitoring & Observability  
+prometheus-client>=0.19.0
+grafana-api>=1.0.3
+elasticsearch>=8.11.0
+loguru>=0.7.2
+psutil>=5.9.6
+py-cpuinfo>=9.0.0
+
+# Storage Management
+boto3>=1.34.0
+azure-storage-blob>=12.19.0
+google-cloud-storage>=2.10.0
+paramiko>=3.4.0
+fabric>=3.2.2
+
+# AI/ML Features
+scikit-learn>=1.3.2
+pandas>=2.1.4
+numpy>=1.25.2
+scipy>=1.11.4
+joblib>=1.3.2
+
+# Database & Caching
+redis>=5.0.1
+psycopg2-binary>=2.9.9
+
+# Web & API
+fastapi>=0.104.1
+uvicorn>=0.24.0
+httpx>=0.25.2
+websockets>=12.0
+pydantic>=2.5.0
+
+# Gaming & GPU
+py3nvml>=0.2.7
+nvidia-ml-py>=12.535.133
+
+# Enterprise Features
+kubernetes>=28.1.0
+docker>=6.1.3
+ldap3>=2.9.1
+pyjwt>=2.8.0
+
+# Development & Testing
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+black>=23.11.0
+flake8>=6.1.0
+mypy>=1.7.1
+
+# Additional utilities
+click>=8.1.7
+rich>=13.7.0
+typer>=0.9.0
+schedule>=1.2.1
+croniter>=2.0.1
+python-crontab>=3.0.0
