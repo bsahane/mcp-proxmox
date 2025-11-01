@@ -115,19 +115,57 @@ PROXMOX_CLUSTER_2_TOKEN_SECRET="staging-secret"
 
 ### Running the MCP Server
 
-**Preferred method (module form):**
+The server supports multiple transport modes for different use cases:
+
+#### STDIO Mode (Default - Local Use)
+
+For local MCP clients like Cursor and Claude Desktop:
 
 ```bash
 source .venv/bin/activate
 python -m proxmox_mcp.server
 ```
 
-**Alternative (console script):**
+Or using the console script:
 
 ```bash
 source .venv/bin/activate
 proxmox-mcp
 ```
+
+#### SSE Mode (Remote Access via Server-Sent Events)
+
+For remote access with real-time streaming:
+
+```bash
+source .venv/bin/activate
+python -m proxmox_mcp.server --transport sse --host 0.0.0.0 --port 8000
+```
+
+Access the server at: `http://your-server:8000`
+
+#### HTTP Mode (Remote Access via HTTP API)
+
+For remote access with HTTP REST API:
+
+```bash
+source .venv/bin/activate
+python -m proxmox_mcp.server --transport http --host 0.0.0.0 --port 8000
+```
+
+**Available Endpoints:**
+- `GET /` - Server information
+- `GET /health` - Health check and Proxmox connectivity
+- `GET /tools` - List all available MCP tools
+- `POST /execute` - Execute an MCP tool
+- `GET /stream` - SSE streaming endpoint (SSE mode only)
+- `GET /docs` - Interactive API documentation
+
+**Command-Line Options:**
+- `--transport` - Transport mode: `stdio` (default), `sse`, or `http`
+- `--host` - Host to bind to (default: `127.0.0.1`, use `0.0.0.0` for remote access)
+- `--port` - Port to bind to (default: `8000`)
+- `--reload` - Enable auto-reload on code changes (development only)
 
 ### Integration with Cursor
 

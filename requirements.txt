@@ -8,6 +8,14 @@ jsonschema>=4.20.0
 jinja2>=3.1.3
 cryptography>=41.0.0
 
+# HTTP and SSE transport support
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+sse-starlette>=1.8.2
+httpx>=0.25.2
+websockets>=12.0
+pydantic>=2.5.0
+
 # Security & Authentication
 pyotp>=2.9.0
 qrcode>=7.4.2

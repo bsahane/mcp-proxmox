@@ -4,16 +4,27 @@
 help:
 	@echo "MCP Proxmox Server - Available Commands:"
 	@echo ""
+	@echo "Setup & Installation:"
 	@echo "  make install      - Install production dependencies"
 	@echo "  make install-dev  - Install development dependencies"
-	@echo "  make test         - Run tests"
-	@echo "  make lint         - Run linters"
-	@echo "  make format       - Format code"
+	@echo "  make verify       - Verify installation"
+	@echo ""
+	@echo "Running the Server:"
+	@echo "  make run          - Run MCP server in STDIO mode (default)"
+	@echo "  make run-sse      - Run MCP server in SSE mode (remote access)"
+	@echo "  make run-http     - Run MCP server in HTTP mode (remote access)"
+	@echo "  make run-dev      - Run MCP server in development mode (auto-reload)"
+	@echo ""
+	@echo "Development:"
+	@echo "  make test         - Run tests with coverage"
+	@echo "  make lint         - Run code linters"
+	@echo "  make format       - Auto-format code"
 	@echo "  make security     - Run security scans"
-	@echo "  make clean        - Clean build artifacts"
-	@echo "  make run          - Run MCP server"
 	@echo "  make check        - Run all checks (lint + test + security)"
-	@echo "  make docs         - Generate documentation"
+	@echo ""
+	@echo "Maintenance:"
+	@echo "  make clean        - Clean build artifacts"
+	@echo "  make docs         - View documentation info"
 	@echo ""
 
 # Install production dependencies
@@ -79,10 +90,28 @@ clean:
 	rm -rf build/ dist/ .eggs/ .pytest_cache/ .coverage htmlcov/ .mypy_cache/ .tox/
 	@echo "✅ Cleanup complete"
 
-# Run MCP server
+# Run MCP server (STDIO mode - default)
 run:
-	@echo "Starting MCP server..."
+	@echo "Starting MCP server in STDIO mode..."
 	python -m proxmox_mcp.server
+
+# Run MCP server in SSE mode (remote access)
+run-sse:
+	@echo "Starting MCP server in SSE mode..."
+	@echo "Server will be available at: http://0.0.0.0:8000"
+	python -m proxmox_mcp.server --transport sse --host 0.0.0.0 --port 8000
+
+# Run MCP server in HTTP mode (remote access)
+run-http:
+	@echo "Starting MCP server in HTTP mode..."
+	@echo "Server will be available at: http://0.0.0.0:8000"
+	python -m proxmox_mcp.server --transport http --host 0.0.0.0 --port 8000
+
+# Run MCP server in development mode with auto-reload
+run-dev:
+	@echo "Starting MCP server in development mode (HTTP + auto-reload)..."
+	@echo "Server will be available at: http://127.0.0.1:8000"
+	python -m proxmox_mcp.server --transport http --host 127.0.0.1 --port 8000 --reload
 
 # Run all checks
 check: lint test security

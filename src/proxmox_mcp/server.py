@@ -3262,7 +3262,235 @@ async def proxmox_notes_template(
 
 
 def main() -> None:
-    server.run("stdio")
+    """
+    Main entry point for MCP Proxmox Server.
+    
+    Supports multiple transport modes:
+    - stdio: Standard input/output (default, for local MCP clients)
+    - sse: Server-Sent Events over HTTP (for remote access)
+    - http: HTTP streaming (for web-based clients)
+    
+    Usage:
+        # STDIO mode (default)
+        python -m proxmox_mcp.server
+        
+        # SSE mode for remote access
+        python -m proxmox_mcp.server --transport sse --host 0.0.0.0 --port 8000
+        
+        # HTTP streaming mode
+        python -m proxmox_mcp.server --transport http --host 0.0.0.0 --port 8000
+    """
+    import argparse
+    import sys
+    
+    parser = argparse.ArgumentParser(
+        description="MCP Proxmox Server - Advanced Proxmox automation via Model Context Protocol"
+    )
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "sse", "http"],
+        default="stdio",
+        help="Transport mode: stdio (default), sse (Server-Sent Events), or http (HTTP streaming)"
+    )
+    parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Host to bind to (for sse/http modes). Use 0.0.0.0 for remote access. Default: 127.0.0.1"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port to bind to (for sse/http modes). Default: 8000"
+    )
+    parser.add_argument(
+        "--reload",
+        action="store_true",
+        help="Enable auto-reload on code changes (development only)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.transport == "stdio":
+        # Standard STDIO mode for local MCP clients (Cursor, Claude Desktop, etc.)
+        print("Starting MCP Proxmox Server in STDIO mode...", file=sys.stderr)
+        server.run("stdio")
+    
+    elif args.transport in ["sse", "http"]:
+        # SSE or HTTP mode for remote access
+        print(f"Starting MCP Proxmox Server in {args.transport.upper()} mode...", file=sys.stderr)
+        print(f"Server will be available at: http://{args.host}:{args.port}", file=sys.stderr)
+        print(f"API documentation: http://{args.host}:{args.port}/docs", file=sys.stderr)
+        
+        # Import FastAPI dependencies
+        try:
+            from fastapi import FastAPI, Request
+            from fastapi.responses import StreamingResponse, JSONResponse
+            from fastapi.middleware.cors import CORSMiddleware
+            import uvicorn
+            import json
+            import asyncio
+        except ImportError as e:
+            print(f"Error: Missing dependencies for {args.transport} mode", file=sys.stderr)
+            print("Install with: pip install fastapi uvicorn sse-starlette", file=sys.stderr)
+            sys.exit(1)
+        
+        # Create FastAPI app
+        app = FastAPI(
+            title="MCP Proxmox Server",
+            description="Advanced Proxmox automation via Model Context Protocol",
+            version="1.0.0"
+        )
+        
+        # Add CORS middleware for remote access
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],  # Configure appropriately for production
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+        
+        @app.get("/")
+        async def root():
+            """Root endpoint with server information"""
+            return {
+                "name": "MCP Proxmox Server",
+                "version": "1.0.0",
+                "transport": args.transport,
+                "status": "running",
+                "endpoints": {
+                    "health": "/health",
+                    "tools": "/tools",
+                    "execute": "/execute",
+                    "stream": "/stream" if args.transport == "sse" else None,
+                    "docs": "/docs"
+                }
+            }
+        
+        @app.get("/health")
+        async def health():
+            """Health check endpoint"""
+            try:
+                # Try to get a client to verify Proxmox connectivity
+                client = get_client()
+                return {
+                    "status": "healthy",
+                    "proxmox_connected": True,
+                    "multi_cluster": is_multi_cluster_mode()
+                }
+            except Exception as e:
+                return JSONResponse(
+                    status_code=503,
+                    content={
+                        "status": "unhealthy",
+                        "error": str(e),
+                        "proxmox_connected": False
+                    }
+                )
+        
+        @app.get("/tools")
+        async def list_tools():
+            """List all available MCP tools"""
+            # Get tools from server
+            tools = getattr(server, 'tools', {}) or getattr(server, '_tool_registry', {})
+            return {
+                "tools": [
+                    {
+                        "name": name,
+                        "description": tool.__doc__ or "No description available"
+                    }
+                    for name, tool in tools.items()
+                ]
+            }
+        
+        @app.post("/execute")
+        async def execute_tool(request: Request):
+            """Execute an MCP tool"""
+            try:
+                data = await request.json()
+                tool_name = data.get("tool")
+                params = data.get("params", {})
+                
+                if not tool_name:
+                    return JSONResponse(
+                        status_code=400,
+                        content={"error": "Missing 'tool' parameter"}
+                    )
+                
+                # Get the tool function
+                tools = getattr(server, 'tools', {}) or getattr(server, '_tool_registry', {})
+                tool_func = tools.get(tool_name)
+                
+                if not tool_func:
+                    return JSONResponse(
+                        status_code=404,
+                        content={"error": f"Tool '{tool_name}' not found"}
+                    )
+                
+                # Execute the tool
+                result = await tool_func(**params)
+                
+                return {
+                    "success": True,
+                    "tool": tool_name,
+                    "result": result
+                }
+                
+            except Exception as e:
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "success": False,
+                        "error": str(e),
+                        "type": type(e).__name__
+                    }
+                )
+        
+        if args.transport == "sse":
+            # SSE endpoint for streaming updates
+            from sse_starlette.sse import EventSourceResponse
+            
+            @app.get("/stream")
+            async def stream_events(request: Request):
+                """Stream MCP tool execution results via Server-Sent Events"""
+                async def event_generator():
+                    try:
+                        # Send initial connection message
+                        yield {
+                            "event": "connected",
+                            "data": json.dumps({
+                                "message": "Connected to MCP Proxmox Server",
+                                "transport": "sse"
+                            })
+                        }
+                        
+                        # Keep connection alive
+                        while True:
+                            if await request.is_disconnected():
+                                break
+                            
+                            # Send heartbeat every 30 seconds
+                            yield {
+                                "event": "heartbeat",
+                                "data": json.dumps({"timestamp": asyncio.get_event_loop().time()})
+                            }
+                            
+                            await asyncio.sleep(30)
+                            
+                    except asyncio.CancelledError:
+                        pass
+                
+                return EventSourceResponse(event_generator())
+        
+        # Run the FastAPI server
+        uvicorn.run(
+            app,
+            host=args.host,
+            port=args.port,
+            reload=args.reload,
+            log_level="info"
+        )
 
 
 if __name__ == "__main__":
